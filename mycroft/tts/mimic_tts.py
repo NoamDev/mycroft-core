@@ -38,7 +38,7 @@ DATA_DIR = expanduser(Configuration.get()['data_dir'])
 
 mimic_base = "mimic.exe" if sys.platform.startswith("win") else "mimic"
 
-BIN = config.get("path",
+BIN = CONFIG.get("path",
                  os.path.join(MYCROFT_ROOT_PATH, 'mimic', 'bin', mimic_base))
 
 if not os.path.isfile(BIN):
