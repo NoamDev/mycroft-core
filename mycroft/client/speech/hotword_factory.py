@@ -32,8 +32,10 @@ from petact import install_package
 from mycroft.configuration import Configuration, LocalConf, USER_CONFIG
 from mycroft.util.log import LOG
 
+IS_WIN = sys.platform.startswith('win')
+
 RECOGNIZER_DIR = join(abspath(dirname(__file__)), "recognizer")
-INIT_TIMEOUT = 10  # In seconds
+INIT_TIMEOUT = 100  # In seconds
 
 
 class TriggerReload(Exception):
@@ -126,7 +128,7 @@ class PocketsphinxHotWord(HotWordEngine):
         config.set_float('-kws_threshold', float(self.threshold))
         config.set_float('-samprate', self.sample_rate)
         config.set_int('-nfft', 2048)
-        config.set_string('-logfn', '/dev/null')
+        config.set_string('-logfn', 'NUL' if IS_WIN else '/dev/null')
         return config
 
     def transcribe(self, byte_data, metrics=None):
@@ -216,12 +218,19 @@ class PreciseHotword(HotWordEngine):
 
     @property
     def install_destination(self):
-        return join(self.folder, 'precise-engine', 'precise-engine')
+        if sys.platform.startswith('win'):
+            exe = 'precise-engine.exe'
+        else:
+            exe = 'precise-engine'
+        return join(self.folder, 'precise-engine', exe)
 
     def install_exe(self, url: str) -> str:
         url = url.format(arch=platform.machine())
         if not url.endswith('.tar.gz'):
-            url = requests.get(url).text.strip()
+            r = requests.get(url)
+            if r.status_code == 404:
+                r.raise_for_status()
+            url = r.text.strip()
         if install_package(
                 url, self.folder,
                 on_download=self.on_download, on_complete=self.on_complete
